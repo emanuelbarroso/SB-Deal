@@ -32,6 +32,16 @@ public:
 	int simulateCode(bool);
 	void integerTokenize(const string &,vector<int> &,const string & = " ");
 	int genRand(int = -32768,int = 32767);
+	int getGCD(int,int);
+	int getLCM(int,int);
+	inline int minVal(int a, int b) {
+		return (a < b) ? a : b;
+	}
+
+	inline int maxVal(int a, int b) {
+		return (a > b) ? a : b;
+	}
 };
+
 
 #endif

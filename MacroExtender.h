@@ -19,6 +19,7 @@ using namespace std;
 
 #ifndef MACRO_EXTENDER_H
 #define MACRO_EXTENDER_H
+#define MACRO_MAX_PARAMS 26
 
 class MacroExtender : public Assembler {
 private:

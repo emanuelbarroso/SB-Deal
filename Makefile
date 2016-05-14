@@ -3,8 +3,8 @@
 
 
 # Flags
-CXX = g++-4.9
-FLAG = -c -Wall -std=c++11
+CXX = g++-5
+FLAG = -I. -c -Wall -std=c++11
 
 # Sources
 SOURCES = main.cpp DirectiveTable.cpp OpcodeTable.cpp Interface.cpp PreProcessor.cpp Assembler.cpp DefinitionTable.cpp MacroExtender.cpp UseTable.cpp SymbolTable.cpp Linker.cpp Simulator.cpp IA32Translator.cpp ElfCreator.cpp MipsTranslator.cpp

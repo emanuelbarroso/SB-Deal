@@ -28,10 +28,13 @@ int main() {
 	char cstr[81];
 	map<string,pair<int,int> > cppLines;
 	map<string,pair<int,int> > hLines;
+	map<string,pair<int,int> > asmLines;
 	pair<int,int> auxLine;
 	pair<int,int> sumcpp = make_pair(0,0);
 	pair<int,int> sumh = make_pair(0,0);
+	pair<int,int> sumasm = make_pair(0,0);
 	pair<int,int> sumLine = make_pair(0,0);
+	pair<int,int> sumch = make_pair(0,0);
 
 	vector<string> possibleFiles = read_directory(string());
 	if (!possibleFiles.empty()) {
@@ -39,14 +42,19 @@ int main() {
 			auxLine = lineCount(s);
 			if (s.find(".cpp")!=string::npos && s.find(".cpp~")==string::npos) {
 				cppLines.emplace(s,auxLine);
-				sumcpp+=auxLine;				
+				sumcpp += auxLine;				
 			}
 			else if (s.find(".h")!=string::npos && s.find(".h~")==string::npos) {
 				hLines.emplace(s,auxLine);
-				sumh+=auxLine;
+				sumh += auxLine;
+			}
+			else if (s.find(".asm")!=string::npos && s.find(".asm~")==string::npos) {
+				asmLines.emplace(s,auxLine);
+				sumasm += auxLine;
 			}
 		}
-		sumLine = sumh + sumcpp;
+		sumLine = sumh + sumcpp + sumasm;
+		sumch = sumh + sumcpp;
 		sprintf(cstr,"%.2lf %%",perc(sumcpp));
 		cout	<< "### RESULT:" << endl;
 		cout	<< left << setw(25) << ".cpp File Name" << left << setw(10) << "Total"
@@ -56,9 +64,19 @@ int main() {
 				<< left << setw(10) << string(cstr) << endl << endl;
 		sprintf(cstr,"%.2lf %%",perc(sumh));
 		cout	<< left << setw(25) << ".h File Name" << left << setw(10) << "Total"
-				<< left << setw(10) << "Effe." << endl << endl << hLines
+				<< left << setw(10) << "Effe." << left << setw(10) << "Perc." << endl << endl << hLines
 				<< left << setw(25) << "@@@@@ TOTAL(H):" << left << setw(10) << sumh.first
 				<< left << setw(10) << sumh.second
+				<< left << setw(10) << string(cstr) << endl << endl;
+		sprintf(cstr,"%.2lf %%",perc(sumasm));
+		cout	<< left << setw(25) << ".asm File Name" << left << setw(10) << "Total"
+				<< left << setw(10) << "Effe." << left << setw(10) << "Perc." << endl << endl << asmLines
+				<< left << setw(25) << "@@@@@ TOTAL(ASM):" << left << setw(10) << sumasm.first
+				<< left << setw(10) << sumasm.second
+				<< left << setw(10) << string(cstr) << endl << endl;
+		sprintf(cstr,"%.2lf %%",perc(sumch));
+		cout	<< left << setw(25) << "@@@@@ TOTAL(.CPP+.H):" << left << setw(10) << sumch.first
+				<< left << setw(10) << sumch.second
 				<< left << setw(10) << string(cstr) << endl << endl;
 		sprintf(cstr,"%.2lf %%",perc(sumLine));
 		cout	<< left << setw(25) << "@@@@@ TOTAL(GENERAL):" << left << setw(10) << sumLine.first

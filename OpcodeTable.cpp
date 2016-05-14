@@ -66,6 +66,12 @@ OpcodeTable::OpcodeTable() {
 	opcodeTable.emplace("AH_OUTPUT",57);	sizeTable.emplace("AH_OUTPUT",0);
 	opcodeTable.emplace("AC_INPUT",58);		sizeTable.emplace("AC_INPUT",0);
 	opcodeTable.emplace("AC_OUTPUT",59);	sizeTable.emplace("AC_OUTPUT",0);
+	opcodeTable.emplace("JMPNZ",60);		sizeTable.emplace("JMPNZ",1);
+	opcodeTable.emplace("MINM",61);			sizeTable.emplace("MINM",2);
+	opcodeTable.emplace("MAXM",62);			sizeTable.emplace("MAXM",2);
+	opcodeTable.emplace("GCD",63);			sizeTable.emplace("GCD",2);
+	opcodeTable.emplace("LCM",64);			sizeTable.emplace("LCM",2);
+	opcodeTable.emplace("EXIT",65);			sizeTable.emplace("EXIT",0);
 }
 
 bool OpcodeTable::isInstruction(string token) {

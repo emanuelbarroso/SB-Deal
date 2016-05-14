@@ -19,8 +19,10 @@ int PreProcessor::preProcess() {
 	fileOut.append(".pre");
 	ifstream inputFile(fileIn,ios::in);
 	map<string,string> equTable;
+	bool testIf = false;
 	bool textSegment = false;
 	bool dataSegment = false;
+	bool noneSegment = false;
 	bool hasTextSegment = false;
 	bool hasDataSegment = false;
 	bool ifResult = true;
@@ -58,6 +60,7 @@ int PreProcessor::preProcess() {
 				hasTextSegment = true;
 				dataSegment = false;
 				textSegment = true;
+				noneSegment = false;
 			}
 			else if (regex_match(curLine.substr(8),regex("\\bDATA$"))) {
 				if (hasDataSegment) {
@@ -66,19 +69,21 @@ int PreProcessor::preProcess() {
 				hasDataSegment = true;
 				dataSegment = true;
 				textSegment = false;
+				noneSegment = false;
 			}
 			else {
 				dataSegment = false;
 				textSegment = false;
+				noneSegment = true;
 				addError(numLine,string("Syntactical Error: SECTION only allows TEXT or DATA"));
 			}
 		}
 		else if (curLine.find(" EQU ")!=string::npos || regex_search(curLine,auxMatch,regex(" EQU\\b|\\bEQU |\\bEQU\\b"))) {
 			equError = false;
 			size_t equPos = curLine.find(" EQU ");
-			if (!dataSegment) {
+			if (dataSegment || textSegment || noneSegment) {
 				equError = true;
-				addError(numLine,string("Semantical Error: EQU definitions must go in SECTION DATA"));
+				addError(numLine,string("Semantical Error: EQU definitions must go before all"));
 			}
 			else if (equPos!=string::npos) {
 				string leftEqu = curLine.substr(0,equPos);
@@ -150,6 +155,7 @@ int PreProcessor::preProcess() {
 		//cout	<< left << setw(50) << curLine << " $ " << boolalpha << regex_search(curLine,auxMatch,numRegex) << endl;
 		//cout	<< left << setw(50) << curLine << "; " << left << curLine.length() << " # " << curLine.size() << " -> " << numLine << endl;
 		currentCode.push_back(curLine);
+		currentCode.shrink_to_fit();
 		numLine++;
 	}
 	if (!hasTextSegment) {
@@ -163,7 +169,12 @@ int PreProcessor::preProcess() {
 	}*/
 	vector<string>::iterator codeIterator;
 	for (numLine=1,codeIterator=currentCode.begin();codeIterator!=currentCode.end();codeIterator++,numLine++) {
+		while (testIf && codeIterator!=currentCode.end() && (*codeIterator).empty()) {
+			codeIterator++;
+			numLine++;
+		}
 		curLine = *codeIterator;
+		testIf = false;
 		canWrite = true;
 		for (map<string,string>::iterator sit = equTable.begin();sit != equTable.end();sit++) {
 			string equRegex = string("(\\b") + sit->first + string("\\b)");
@@ -189,6 +200,7 @@ int PreProcessor::preProcess() {
 			canWrite = false;
 		}
 		else if (curLine.find("IF ")!=string::npos && regex_search(curLine,auxMatch,regex("\\bIF "))) {
+			testIf = true;
 			canWrite = false;
 			if (!textSegment) {
 				addError(numLine,"Semantical Error: IF statements must go in SECTION TEXT");

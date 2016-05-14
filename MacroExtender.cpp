@@ -17,6 +17,7 @@ int MacroExtender::macroExtend() {
 	int macroBound = 0;
 	int macroLastStart = 0,macroLastEnd = 0;
 	bool textSegment = false;
+	bool dataSegment = false;
 	bool isMacroBody = false;
 	smatch auxMatch;
 	string curLine;
@@ -47,29 +48,36 @@ int MacroExtender::macroExtend() {
 			else {
 				textSegment = false;
 			}
+			if (regex_search(curLine,auxMatch,regex("\\bDATA$"))) {
+				dataSegment = true;
+			}
+			else {
+				dataSegment = false;
+			}
 		}
 		else if (curLine.find(" MACRO ")!=string::npos || regex_search(curLine,auxMatch,regex(" MACRO$")) || regex_search(curLine,auxMatch,regex("\\bMACRO "))) {
 			macroBound++;
 			macroLastStart = numLine;
-			if (!textSegment) {
-				addError(numLine,string("Semantical Error: MACRO definitions must go in SECTION TEXT"));
+			if (textSegment || dataSegment) {
+				addError(numLine,string("Semantical Error: MACRO definitions must go before all"));
 			}
 		}
 		else if (regex_search(curLine,auxMatch,regex("\\bMACRO "))) {
 			macroBound++;
 			macroLastStart = numLine;
-			if (!textSegment) {
-				addError(numLine,string("Semantical Error: MACRO definitions must go in SECTION TEXT"));
+			if (textSegment || dataSegment) {
+				addError(numLine,string("Semantical Error: MACRO definitions must go before all"));
 			}
 		}
 		else if (regex_search(curLine,auxMatch,regex("\\bENDMACRO$"))) {
 			macroBound--;
 			macroLastEnd = numLine;
-			if (!textSegment) {
-				addError(numLine,string("Semantical Error: ENDMACRO must go in SECTION TEXT"));
+			if (textSegment || dataSegment) {
+				addError(numLine,string("Semantical Error: ENDMACRO must go before all"));
 			}
 		}
 		currentCode.push_back(curLine);
+		currentCode.shrink_to_fit();
 		numLine++;
 	}
 	//cout << "Macro Bound: " << macroBound << endl;
@@ -107,6 +115,9 @@ int MacroExtender::macroExtend() {
 				int macroDefLine = numLine;
 				int numParameters; 
 				string macroLabel = curLine.substr(0,curLine.find_last_of(':'));
+				if (directiveTable.isDirective(macroLabel) || opcodeTable.isInstruction(macroLabel)) {
+					addError(numLine,string("Semantical Error: Invalid use of keyword"));
+				}
 				if (macroLabel.find(':')!=string::npos) {
 					addError(numLine,string("Syntactical Error: Too many definitions for MACRO constructor"));
 				}
@@ -126,8 +137,12 @@ int MacroExtender::macroExtend() {
 						}
 					}
 					numParameters = macroParams.size();
-					if (numParameters>9) {
-						addError(numLine,"Semantical Error: Too many parameters for MACRO definition (max at 9)");
+					if (numParameters > MACRO_MAX_PARAMS) {
+						string pError = "Semantical Error: Too many parameters for MACRO definition (max at ";
+						pError.append(to_string(MACRO_MAX_PARAMS));
+						pError.append(" )");
+						pError.shrink_to_fit();
+						addError(numLine,pError);
 					}
 					//cout << macroParams << endl;
 				}
@@ -167,6 +182,9 @@ int MacroExtender::macroExtend() {
 							string paramRegex = macroParams[i];
 							string paramSub = string("#") + to_string(i+1);
 							curLine = regex_replace(curLine,regex(paramRegex),paramSub);
+						}
+						if(regex_search(curLine,auxMatch,regex("\\&[\\w]"))) {
+							addError(numLine,"Semantical Error: MACRO has less parameters than it uses");
 						}
 						macroLines.push_back(curLine);
 					}

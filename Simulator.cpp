@@ -22,7 +22,8 @@ int Simulator::simulateCode(bool ofbCheck) {
 		JMPL,JMPLE,ZERO_M,ZERO_A,B_OUTPUT,O_OUTPUT,
 		H_OUTPUT,NOT_A,XCHG,LEVEL,SHL,SHR,SAR,G_RAND,
 		G_RANDL,A_INPUT,A_OUTPUT,AB_OUTPUT,AO_OUTPUT,
-		AH_OUTPUT,AC_INPUT,AC_OUTPUT
+		AH_OUTPUT,AC_INPUT,AC_OUTPUT,JMPNZ,MINM,MAXM,
+		GCD,LCM,EXIT
 	};
 
 	ifstream inputFile(fileName,ios::in);
@@ -36,6 +37,7 @@ int Simulator::simulateCode(bool ofbCheck) {
 	int binDigits[33];
 	int binIndex;
 	OpcodeTable opcodeTable;
+	int returnVal = 0;
 
 	if (!inputFile) {
 		cerr	<< "Fatal Error: Could not open file " << fileName << endl; 
@@ -346,6 +348,30 @@ int Simulator::simulateCode(bool ofbCheck) {
 					cout << auxChar << endl;
 					curPC++;
 					break;
+				case JMPNZ:
+					curPC = (curReg!=0) ? curAdd1 : (curPC+2);
+					break;
+				case MINM:
+					curReg = minVal(currentCode.at(curAdd1),currentCode.at(curAdd2));
+					curPC += 3;
+					break;
+				case MAXM:
+					curReg = maxVal(currentCode.at(curAdd1),currentCode.at(curAdd2));
+					curPC += 3;
+					break;
+				case GCD:
+					curReg = getGCD(currentCode.at(curAdd1),currentCode.at(curAdd2));
+					curPC += 3;
+					break;
+				case LCM:
+					curReg = getLCM(currentCode.at(curAdd1),currentCode.at(curAdd2));
+					curPC += 3;
+					break;
+				case EXIT:
+					exitStatus = true;
+					returnVal = curReg;
+					curPC++;
+					break;
 				default:
 					throw std::invalid_argument("Invalid code detected");
 			}
@@ -353,6 +379,7 @@ int Simulator::simulateCode(bool ofbCheck) {
 				throw std::runtime_error("Register's value got out of bounds");
 			}
 		}
+		cout	<< "$$$ Simulation ended with status " << returnVal << " $$$" << endl;
 	}
 	catch(const std::out_of_range &e) {
 		cerr	<< "Simulation Error: Bad code or memory out-of-bounds" << endl;
@@ -386,4 +413,23 @@ int Simulator::genRand(int lower,int upper) {
 	}
 	srand(time(NULL));
 	return ((rand()%uBound)+lBound);
+}
+
+int Simulator::getGCD(int lhs,int rhs) {
+	int t;
+	if (!lhs) return rhs;
+	if (!rhs) return lhs;
+	while (rhs) {
+		t = rhs;
+		rhs = lhs % rhs;
+		lhs = t;
+	}
+	return lhs;
+}
+
+int Simulator::getLCM(int lhs,int rhs) {
+	if (!lhs && !rhs) return 0;
+	int cm = lhs*rhs;
+	if (cm < 0) cm = -cm;
+	return (cm/getGCD(lhs,rhs));
 }

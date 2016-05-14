@@ -23,7 +23,8 @@ Intel32Translator::Intel32Translator(string si,string so,bool db,bool elf,int ba
 						13, 6, 6, 6, 6, 6, 1, 1, 9, 6,
 						 6, 1, 1,12,12,12,12,12,12,10,
 						 2,12,12,12, 2,12,28, 8, 8, 8,
-						19,21, 9, 9, 9, 9, 9, 9, 9
+						19,21, 9, 9, 9, 9, 9, 9, 9, 9,
+						17,17,17,17, 9
 					};
 	objSizes =	{
 					2,2,2,2,2,2,2,2,3,2,
@@ -31,7 +32,8 @@ Intel32Translator::Intel32Translator(string si,string so,bool db,bool elf,int ba
 					3,2,2,2,2,2,1,1,2,2,
 					2,1,1,3,3,3,3,3,3,2,
 					1,2,2,2,1,2,3,2,2,2,
-					1,3,1,1,1,1,1,1,1
+					1,3,1,1,1,1,1,1,1,2,
+					3,3,3,3,1
 				};
 	inputCode = {
 		0xc8,0x18,0x00,0x00,0x89,0x4d,0xfc,0x29,
@@ -191,6 +193,29 @@ Intel32Translator::Intel32Translator(string si,string so,bool db,bool elf,int ba
 		0xf8,0x89,0xd0,0x03,0x45,0xfc,0x89,0x07,
 		0x5f,0xc9,0xc3
 	};
+	minmCode = {
+		0xc8,0x00,0x00,0x00,0x39,0xcb,0x7c,0x04,
+		0x89,0xc8,0xeb,0x02,0x89,0xd8,0xc9,0xc3
+	};
+	maxmCode = {
+		0xc8,0x00,0x00,0x00,0x39,0xcb,0x7f,0x04,
+		0x89,0xc8,0xeb,0x02,0x89,0xd8,0xc9,0xc3
+	};
+	gcdCode = {
+		0xc8,0x04,0x00,0x00,0x83,0xfb,0x00,0x74,
+		0x27,0x83,0xf9,0x00,0x75,0x04,0x89,0xd9,
+		0xeb,0x1e,0x83,0xfb,0x00,0x7f,0x02,0xf7,
+		0xdb,0x83,0xf9,0x00,0x7f,0x02,0xf7,0xd9,
+		0x39,0xcb,0x74,0x0c,0x39,0xcb,0x7f,0x04,
+		0x29,0xd9,0xeb,0xf4,0x29,0xcb,0xeb,0xf0,
+		0x89,0xc8,0xc9,0xc3
+	};
+	lcmCode = {
+		0xc8,0x00,0x00,0x00,0x56,0x53,0x51,0xe8,
+		0xc0,0xff,0xff,0xff,0x89,0xc6,0x59,0x5b,
+		0x89,0xd8,0xf7,0xe9,0xf7,0xfe,0x83,0xf8,
+		0x00,0x7f,0x02,0xf7,0xd8,0x5e,0xc9,0xc3
+	};
 	intelText.push_back(string("section .text"));
 	intelText.push_back(string("\tglobal _start"));
 	intelText.push_back(string("_start:"));
@@ -255,6 +280,32 @@ void Intel32Translator::setIONewFlags(vector<int> code,bool &op42,bool &op43,boo
 	}
 }
 
+void Intel32Translator::setAdvFlags(vector<int> code,bool &op61,bool &op62,bool &op63,bool &op64) {
+	unsigned curPC = 0;
+	try {
+		while (curPC < code.size()) {
+			int op = code.at(curPC);
+			int offset = objSizes.at(op-1);
+			if (op==61) {
+				op61 = true;
+			}
+			else if(op==62) {
+				op62 = true;
+			}
+			else if(op==63) {
+				op63 = true;
+			}
+			else if(op==64) {
+				op64 = true;
+			}
+			curPC += offset;
+		}
+	}
+	catch (...) {
+
+	}
+}
+
 int Intel32Translator::getTextSize(vector<int> code,unsigned breakPoint) {
 	unsigned curPC = 0;
 	int result = 0;
@@ -307,8 +358,10 @@ int Intel32Translator::translateCode() {
 
 	bool has12 = false,has13 = false,has15 = false,has16 = false,has17 = false,has18 = false;
 	bool has42 = false,has43 = false,has44 = false,has5r = false;
+	bool has61 = false,has62 = false,has63 = false,has64 = false;
 	setIOFlags(textSection,has12,has13,has15,has16,has17,has18);
 	setIONewFlags(textSection,has42,has43,has44,has5r);
+	setAdvFlags(textSection,has61,has62,has63,has64);
 	textSize = getTextSize(textSection);
 	if (has12) {
 		intelSymbols.insertSymbol("LeerInteiro",baseAddress + textSize,0);
@@ -411,6 +464,46 @@ int Intel32Translator::translateCode() {
 		intelSymbols.insertSymbol("random_loop",baseAddress + textSize + 0x3a,0);
 		intelSymbols.setSymbolFlags("random_loop",false,false,true);
 		textSize += randomCode.size();
+	}
+	if (has61) {
+		intelSymbols.insertSymbol("Least",baseAddress + textSize,0);
+		intelSymbols.setSymbolFlags("Least",false,false,true);
+		intelSymbols.insertSymbol("d_min",baseAddress + textSize + 0x0c,0);
+		intelSymbols.setSymbolFlags("d_min",false,false,true);
+		intelSymbols.insertSymbol("min_end",baseAddress + textSize + 0x0e,0);
+		intelSymbols.setSymbolFlags("min_end",false,false,true);
+		textSize += minmCode.size();
+	}
+	if (has62) {
+		intelSymbols.insertSymbol("Greatest",baseAddress + textSize,0);
+		intelSymbols.setSymbolFlags("Greatest",false,false,true);
+		intelSymbols.insertSymbol("d_max",baseAddress + textSize + 0x0c,0);
+		intelSymbols.setSymbolFlags("d_max",false,false,true);
+		intelSymbols.insertSymbol("max_end",baseAddress + textSize + 0x0e,0);
+		intelSymbols.setSymbolFlags("max_end",false,false,true);
+		textSize += maxmCode.size();
+	}
+	if (has63 || has64) {
+		intelSymbols.insertSymbol("ComputeGCD",baseAddress + textSize,0);
+		intelSymbols.setSymbolFlags("ComputeGCD",false,false,true);
+		intelSymbols.insertSymbol("gcd_adv1",baseAddress + textSize + 0x12,0);
+		intelSymbols.setSymbolFlags("gcd_adv1",false,false,true);
+		intelSymbols.insertSymbol("gcd_adv2",baseAddress + textSize + 0x19,0);
+		intelSymbols.setSymbolFlags("gcd_adv2",false,false,true);
+		intelSymbols.insertSymbol("gcd_loop",baseAddress + textSize + 0x20,0);
+		intelSymbols.setSymbolFlags("gcd_loop",false,false,true);
+		intelSymbols.insertSymbol("gcd_bc",baseAddress + textSize + 0x2c,0);
+		intelSymbols.setSymbolFlags("gcd_bc",false,false,true);
+		intelSymbols.insertSymbol("end_gcd",baseAddress + textSize + 0x30,0);
+		intelSymbols.setSymbolFlags("end_gcd",false,false,true);
+		textSize += gcdCode.size();
+	}
+	if (has64) {
+		intelSymbols.insertSymbol("ComputeLCM",baseAddress + textSize,0);
+		intelSymbols.setSymbolFlags("ComputeLCM",false,false,true);
+		intelSymbols.insertSymbol("lcm_end",baseAddress + textSize + 0x1d,0);
+		intelSymbols.setSymbolFlags("lcm_end",false,false,true);
+		textSize += lcmCode.size();
 	}
 	int intelDataStart = baseAddress + textSize + anotherOffset;
 	intelDataStart += (4 - (intelDataStart % 4));
@@ -1337,6 +1430,120 @@ int Intel32Translator::translateCode() {
 				machineText << relativeOffset;
 				machineText.push_back(0x58);
 				break;
+			case 60:
+				lineBuilder = "\tcmp eax,0\n\tjne " + name1;
+				relativeOffset = intelSymbols.getAddress(name1) - (iaAdd + 9);
+				intelText.push_back(lineBuilder);
+				machineText.push_back(0x83);
+				machineText.push_back(0xf8);
+				machineText.push_back(0x00);
+				machineText.push_back(0x0f);
+				machineText.push_back(0x85);
+				machineText << relativeOffset;
+				break;
+			case 61:
+				lineBuilder = "\tmov ebx,[" + name1;
+				if (arrayOff1) {
+					lineBuilder = lineBuilder + "+" + to_string(4*arrayOff1);
+				}
+				lineBuilder = lineBuilder + "]\n\tmov ecx,[" + name2;
+				if (arrayOff2) {
+					lineBuilder = lineBuilder + "+" + to_string(4*arrayOff2);
+				}
+				lineBuilder = lineBuilder + "]\n\tcall Least";
+				intelText.push_back(lineBuilder);
+				relativeOffset = intelSymbols.getAddress(string("Least")) - (iaAdd + 17);
+				machineText.push_back(0x8b);
+				machineText.push_back(0x1d);
+				addHolder = intelSymbols.getAddress(name1) + 4*arrayOff1;
+				machineText << addHolder;
+				machineText.push_back(0x8b);
+				machineText.push_back(0x0d);
+				addHolder = intelSymbols.getAddress(name2) + 4*arrayOff2;
+				machineText << addHolder;
+				machineText.push_back(0xe8);
+				machineText << relativeOffset;
+				break;
+			case 62:
+				lineBuilder = "\tmov ebx,[" + name1;
+				if (arrayOff1) {
+					lineBuilder = lineBuilder + "+" + to_string(4*arrayOff1);
+				}
+				lineBuilder = lineBuilder + "]\n\tmov ecx,[" + name2;
+				if (arrayOff2) {
+					lineBuilder = lineBuilder + "+" + to_string(4*arrayOff2);
+				}
+				lineBuilder = lineBuilder + "]\n\tcall Greatest";
+				intelText.push_back(lineBuilder);
+				relativeOffset = intelSymbols.getAddress(string("Greatest")) - (iaAdd + 17);
+				machineText.push_back(0x8b);
+				machineText.push_back(0x1d);
+				addHolder = intelSymbols.getAddress(name1) + 4*arrayOff1;
+				machineText << addHolder;
+				machineText.push_back(0x8b);
+				machineText.push_back(0x0d);
+				addHolder = intelSymbols.getAddress(name2) + 4*arrayOff2;
+				machineText << addHolder;
+				machineText.push_back(0xe8);
+				machineText << relativeOffset;
+				break;
+			case 63:
+				lineBuilder = "\tmov ebx,[" + name1;
+				if (arrayOff1) {
+					lineBuilder = lineBuilder + "+" + to_string(4*arrayOff1);
+				}
+				lineBuilder = lineBuilder + "]\n\tmov ecx,[" + name2;
+				if (arrayOff2) {
+					lineBuilder = lineBuilder + "+" + to_string(4*arrayOff2);
+				}
+				lineBuilder = lineBuilder + "]\n\tcall ComputeGCD";
+				intelText.push_back(lineBuilder);
+				relativeOffset = intelSymbols.getAddress(string("ComputeGCD")) - (iaAdd + 17);
+				machineText.push_back(0x8b);
+				machineText.push_back(0x1d);
+				addHolder = intelSymbols.getAddress(name1) + 4*arrayOff1;
+				machineText << addHolder;
+				machineText.push_back(0x8b);
+				machineText.push_back(0x0d);
+				addHolder = intelSymbols.getAddress(name2) + 4*arrayOff2;
+				machineText << addHolder;
+				machineText.push_back(0xe8);
+				machineText << relativeOffset;
+				break;
+			case 64:
+				lineBuilder = "\tmov ebx,[" + name1;
+				if (arrayOff1) {
+					lineBuilder = lineBuilder + "+" + to_string(4*arrayOff1);
+				}
+				lineBuilder = lineBuilder + "]\n\tmov ecx,[" + name2;
+				if (arrayOff2) {
+					lineBuilder = lineBuilder + "+" + to_string(4*arrayOff2);
+				}
+				lineBuilder = lineBuilder + "]\n\tcall ComputeLCM";
+				intelText.push_back(lineBuilder);
+				relativeOffset = intelSymbols.getAddress(string("ComputeLCM")) - (iaAdd + 17);
+				machineText.push_back(0x8b);
+				machineText.push_back(0x1d);
+				addHolder = intelSymbols.getAddress(name1) + 4*arrayOff1;
+				machineText << addHolder;
+				machineText.push_back(0x8b);
+				machineText.push_back(0x0d);
+				addHolder = intelSymbols.getAddress(name2) + 4*arrayOff2;
+				machineText << addHolder;
+				machineText.push_back(0xe8);
+				machineText << relativeOffset;
+				break;
+			case 65:
+				intelText.push_back("\tmov ebx,eax");
+				intelText.push_back("\tmov eax,1");
+				intelText.push_back("\tint 0x80");
+				machineText.push_back(0x89);
+				machineText.push_back(0xc3);
+				machineText.push_back(0xb8);
+				machineText << static_cast<int>(1);
+				machineText.push_back(0xcd);
+				machineText.push_back(0x80);
+				break;
 			default:
 				break;
 		}
@@ -1461,7 +1668,30 @@ int Intel32Translator::translateCode() {
 		intelText.push_back(string(""));
 		machineText << randomCode;
 	}
- 
+	if (has61) {
+		intelText.push_back(string("Least:\n\tenter 0,0\n\tcmp ebx,ecx\n\tjl d_min\n\tmov eax,ecx"));
+		intelText.push_back(string("\tjmp min_end\nd_min:\n\tmov eax,ebx\nmin_end:\n\tleave\n\tret"));
+		machineText << minmCode;
+	}
+	if (has62) {
+		intelText.push_back(string("Greatest:\n\tenter 0,0\n\tcmp ebx,ecx\n\tjg d_max\n\tmov eax,ecx"));
+		intelText.push_back(string("\tjmp max_end\nd_max:\n\tmov eax,ebx\nmax_end:\n\tleave\n\tret"));
+		machineText << maxmCode;
+	}
+	if (has63 || has64) {
+		intelText.push_back(string("ComputeGCD:\n\tenter 4,0\n\tcmp ebx,0\n\tje end_gcd\n\tcmp ecx,0\n\tjne gcd_adv1"));
+		intelText.push_back(string("\tmov ecx,ebx\n\tjmp end_gcd\ngcd_adv1:\n\tcmp ebx,0\n\tjg gcd_adv2\n\tneg ebx"));
+		intelText.push_back(string("gcd_adv2:\n\tcmp ecx,0\n\tjg gcd_loop\n\tneg ecx\ngcd_loop:\n\tcmp ebx,ecx\n\tje end_gcd"));
+		intelText.push_back(string("\tcmp ebx,ecx\n\tjg gcd_bc\n\tsub ecx,ebx\n\tjmp gcd_loop\ngcd_bc:\n\tsub ebx,ecx"));
+		intelText.push_back(string("\tjmp gcd_loop\nend_gcd:\n\tmov eax,ecx\n\tleave\n\tret"));
+		machineText << gcdCode;
+	}
+	if (has64) {
+		intelText.push_back(string("ComputeLCM:\n\tenter 0,0\n\tpush esi\n\tpush ebx\n\tpush ecx\n\tcall ComputeGCD"));
+		intelText.push_back(string("\tmov esi,eax\n\tpop ecx\n\tpop ebx\n\tmov eax,ebx\n\timul ecx\n\tidiv esi"));
+		intelText.push_back(string("\tcmp eax,0\n\tjg lcm_end\n\tneg eax\nlcm_end:\n\tpop esi\n\tleave\n\tret"));
+		machineText << lcmCode;
+	} 
 	//cout << "Intel Symbol Table:\n\n" << hex << setfill('0') << uppercase << setw(2) << intelSymbols << endl;
 	//cout << "Text Machine: [" << machineText << "]" << endl;
 	//cout << "Data Machine: [" << machineData << "]" << endl;

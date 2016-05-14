@@ -1397,7 +1397,7 @@ bool Assembler::alreadyHasError(int line,string msg) {
 
 int Assembler::getTier(int code) {
 	vector<int> tier0 =	{ 
-							 5, 6, 7, 8
+							 5, 6, 7, 8,60
 						};
 	vector<int> tier1 =	{ 
 							 1, 2, 3, 4,10,11,12,13,15,16,17,
@@ -1406,10 +1406,10 @@ int Assembler::getTier(int code) {
 						};
 	vector<int> tier2 =	{
 							14,27,28,32,33,41,45,51,53,54,55,
-							56,57,58,59
+							56,57,58,59,65
 						};
 	vector<int> tier3 =	{
-							 9,19,20,21,47,52
+							 9,19,20,21,47,52,61,62,63,64
 						};
 	vector<int> tier4 = {
 							34,35,36,37,38,39

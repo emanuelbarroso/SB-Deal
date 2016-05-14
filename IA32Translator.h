@@ -51,9 +51,14 @@ private:
 	vector<int> ooutputCode;
 	vector<int> houtputCode;
 	vector<int> randomCode;
+	vector<int> minmCode;
+	vector<int> maxmCode;
+	vector<int> gcdCode;
+	vector<int> lcmCode;
 	int getTextSize(vector<int>,unsigned = UINT_MAX);
 	void setIOFlags(vector<int>,bool &,bool &,bool &,bool &,bool &,bool &);
 	void setIONewFlags(vector<int>,bool &,bool &,bool &,bool &);
+	void setAdvFlags(vector<int>,bool &,bool &,bool &,bool &);
 protected:
 	bool keepDebug;
 	bool hasData;
