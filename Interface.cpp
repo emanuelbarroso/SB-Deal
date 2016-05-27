@@ -7,6 +7,22 @@
 #include "Interface.h"
 
 Interface::Interface(int argc, char **argv) {
+	possibleArgs.emplace("-p",1);		// Pre-process
+	possibleArgs.emplace("-m",2);		// Macro-Extend
+	possibleArgs.emplace("-Dm",3);		// Debug Macro-Extend
+	possibleArgs.emplace("-o",4);		// Assemble
+	possibleArgs.emplace("-Do",5);		// Debug Assemble
+	possibleArgs.emplace("-tia32",6);	// IA32 translate
+	possibleArgs.emplace("-tmips",7);	// Mips translate
+	possibleArgs.emplace("-l",8);		// Link
+	possibleArgs.emplace("-L",9);		// Link from sources
+	possibleArgs.emplace("-DL",10);		// Debug Link from sources 
+	possibleArgs.emplace("-s",11);		// Simulate
+	possibleArgs.emplace("-h",12);		// General Help
+	possibleArgs.emplace("-H",13);		// Command Help
+	possibleArgs.emplace("-man",14);	// Language Keyword Help
+	possibleArgs.emplace("-dis",15);	// Disassemble
+	// to-do: Specific Help
 	string thisName = argv[0];
 	thisName.erase(0,2);
 	canRun = true;
@@ -110,12 +126,12 @@ int Interface::runInterface() {
 					throw 1;
 				}
 				ofbCheck = false;
-				if (numArgs<=3) {
+				if (numArgs==3) {
 					simArgAux = arrayArgs.at(2);
 				}
 				else {
 					simArgAux = arrayArgs.at(3);
-					if (arrayArgs.at(3)!="-16bit") {
+					if (arrayArgs.at(2)!="-16bit") {
 						throw 1;
 					}
 					ofbCheck = true;
@@ -140,6 +156,16 @@ int Interface::runInterface() {
 				showSpecificHelp(thisName,arrayArgs.at(2));
 				break;
 			case 14:
+				if (numArgs != 3) {
+					throw 1;
+				}
+				manPages(arrayArgs.at(2));
+				break;
+			case 15:
+				if (numArgs != 3) {
+					throw 1;
+				}
+				auxDis(arrayArgs.at(2));
 				break;
 			default:
 				throw 1;
@@ -186,6 +212,14 @@ int completeAssemble(string s1,string s2,int command,int control) {
 	}
 	return errors;
 }
+
+int Interface::findCommand(string argCommand) {
+	if (possibleArgs.find(argCommand) != possibleArgs.end()) {
+		return possibleArgs.find(argCommand)->second;
+	}
+	return 0;
+}
+
 
 void auxPre(string s1,string s2) {
 	PreProcessor preProcessor(s1,s2);
@@ -351,30 +385,6 @@ ostream &operator<<(ostream &output,const Interface &interface) {
 	return output; 
 }
 
-int findCommand(string argCommand) {
-	map<string,int> possibleArgs;
-	possibleArgs.emplace("-p",1);		// Pre-process
-	possibleArgs.emplace("-m",2);		// Macro-Extend
-	possibleArgs.emplace("-Dm",3);		// Debug Macro-Extend
-	possibleArgs.emplace("-o",4);		// Assemble
-	possibleArgs.emplace("-Do",5);		// Debug Assemble
-	possibleArgs.emplace("-tia32",6);	// IA32 translate
-	possibleArgs.emplace("-tmips",7);	// Mips translate
-	possibleArgs.emplace("-l",8);		// Link
-	possibleArgs.emplace("-L",9);		// Link from sources
-	possibleArgs.emplace("-DL",10);		// Debug Link from sources 
-	possibleArgs.emplace("-s",11);		// Simulate
-	possibleArgs.emplace("-h",12);		// General Help
-	possibleArgs.emplace("-H",13);		// Command Help
-	possibleArgs.emplace("-man",14);	// Language Keyword Help
-	// to-do: Specific Help
-
-	if (possibleArgs.find(argCommand) != possibleArgs.end()) {
-		return possibleArgs.find(argCommand)->second;
-	}
-	return 0;
-}
-
 void showHelp(string name) {
 	string lineStart = "\t$ ./" + name;
 	cout	<< lineStart << " -p <file_in> <file_out>" << endl;
@@ -389,7 +399,10 @@ void showHelp(string name) {
 	cout	<< lineStart << " -DL <file_in1> <file2_in> <file_out>" << endl;
 	cout	<< lineStart << " -s <file>.<extsim>" << endl;
 	cout	<< lineStart << " -s -16bit <file>.<extsim>" << endl;
-	cout	<< lineStart << " -h" << endl << endl;
+	cout	<< lineStart << " -h" << endl;
+	cout	<< lineStart << " -H <command>" << endl;
+	cout	<< lineStart << " -man <command>" << endl;
+	cout	<< lineStart << " -dis <file>.<extsim>" << endl;
 	cout	<< "\t<argt>: -raw,-elf" << endl;
 	cout	<< "\t<argd>: -deb,-ndeb" << endl;
 	cout	<< "\t<extsim>: o,e" << endl << endl;
@@ -426,6 +439,8 @@ void showOptions() {
 	optionsHelp.emplace("-s","Simulate hypothetical object code");
 	optionsHelp.emplace("-16bit","Enable restricted simulation mode, used with -s");
 	optionsHelp.emplace("-h","Show main help contents");
+	optionsHelp.emplace("-H","Show specific help contents");
+	optionsHelp.emplace("-dis","Disassembly object code");
 
 	for (auto &x : optionsHelp) {
 		cout	<< "\t" << left << setw(10) << x.first << " " << x.second << endl;
@@ -433,7 +448,7 @@ void showOptions() {
 	cout << endl;
 }
 
-void showSpecificHelp(string exeName,string specHelp) {
+void Interface::showSpecificHelp(string exeName,string specHelp) {
 	int cmd = findCommand(specHelp);
 	cout	<< "@ Help for command \"" << specHelp << "\":" << endl;
 	switch (cmd) {
@@ -530,9 +545,25 @@ void showSpecificHelp(string exeName,string specHelp) {
 			cout	<< "\t- Shows help contents for any supported keyword from the currently assembled language.\n";
 			cout	<< "\t- Usage:\n\t\t$ ./" << exeName << " -man <Keyword>";
 			break;
+		case 15:
+			cout	<< "\t# Disassembler Mode:" << endl;
+			cout	<< "\t- Try to disassemble raw object code for the currently supported language.\n";
+			cout	<< "\t  Please note that section data will be treated as code too.\n";
+			cout	<< "\t- Usage:\n\t\t$ ./" << exeName << " -dis <fileIn>";
+			break;
 		default:
 			cout	<< "\t- Unknown command detected!";
 			break;
 	}
 	cout << endl << endl;
+}
+
+void auxDis(string inFile) {
+	Disassembler disassembler(inFile);
+	disassembler.disassembleCode();
+}
+
+void manPages(string infoStr) {
+	LangManual langManual(infoStr);
+	langManual.printInfo();
 }

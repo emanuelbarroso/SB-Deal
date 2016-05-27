@@ -25,6 +25,7 @@ public:
 	string getName(int);
 	int getInstructionSize(string);
 	int getInstructionSize(int);
+	int size();
 	friend ostream &operator<<(ostream &,const OpcodeTable &);
 };
 

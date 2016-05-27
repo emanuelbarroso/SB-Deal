@@ -106,6 +106,10 @@ int OpcodeTable::getInstructionSize(int opcode) {
 	return getInstructionSize(getName(opcode));
 }
 
+int OpcodeTable::size() {
+	return opcodeTable.size();
+}
+
 ostream &operator<<(ostream &output,const OpcodeTable &opcodeRef) {
 	map<string,int> mapOp = opcodeRef.opcodeTable; 
 	map<string,int> mapSz = opcodeRef.sizeTable;
